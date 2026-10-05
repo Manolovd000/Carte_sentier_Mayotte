@@ -1,0 +1,81 @@
+:root{
+  /* === Charte Conservatoire du littoral : à remplacer par les codes officiels === */
+  --cdl-bleu:#0068b0;
+  --cdl-bleu-fonce:#00538c;
+  --cdl-accent:#6fa22b;
+  --cdl-accent-fonce:#59851f;
+  --cdl-police:"Open Sans","Segoe UI",Arial,sans-serif;
+}
+
+.pi-btn-ctl a{display:block;width:auto !important;height:auto !important;background:var(--cdl-bleu);color:#fff !important;font:600 13px/1.2 Arial,sans-serif;padding:9px 12px;border-radius:4px;text-decoration:none;box-shadow:0 1px 5px rgba(0,0,0,.4);cursor:pointer;white-space:nowrap}
+.pi-btn-ctl a:hover{background:var(--cdl-bleu-fonce)}
+.pi-panel{position:absolute;left:10px;bottom:28px;z-index:1000;width:340px;max-width:calc(100vw - 20px);max-height:calc(100% - 60px);overflow:auto;background:#fff;color:#222;font:13px/1.4 Arial,sans-serif;border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,.45);padding:12px 14px;display:none}
+.pi-panel.pi-open{display:block}
+.pi-head{color:var(--cdl-bleu);font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:15px}
+.pi-x{border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:#555}
+.pi-help{margin:0 0 8px;color:#333}
+.pi-panel label{display:block;margin:6px 0 2px;font-weight:600;font-size:12px}
+.pi-panel select{width:100%;box-sizing:border-box;border:1px solid #bbb;border-radius:3px;padding:5px 6px;font:13px Arial,sans-serif;background:#fff}
+.pi-panel input[type=text],.pi-panel textarea{width:100%;box-sizing:border-box;border:1px solid #bbb;border-radius:3px;padding:5px 6px;font:13px Arial,sans-serif}
+.pi-stats{margin:8px 0;padding:6px 8px;background:#f1f3f5;border-radius:3px;font-size:12px}
+.pi-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pi-row button{flex:1 1 auto;border:1px solid #adb5bd;background:#f8f9fa;border-radius:4px;padding:7px 9px;font:600 12px Arial,sans-serif;cursor:pointer}
+.pi-row button:hover:not(:disabled){background:#e9ecef}
+.pi-row button:disabled{opacity:.45;cursor:not-allowed}
+.pi-row .pi-primary{background:var(--cdl-bleu);border-color:var(--cdl-bleu);color:#fff}
+.pi-row .pi-primary:hover:not(:disabled){background:var(--cdl-bleu-fonce)}
+.pi-row .pi-export{background:#2b8a3e;border-color:#2b8a3e;color:#fff}
+.pi-row .pi-export:hover:not(:disabled){background:#237032}
+.pi-msg{margin-top:8px;font-size:12px;color:#2b8a3e;min-height:1em}
+.pi-msg.pi-err{color:#c92a2a}
+.pi-priv{margin-top:8px;font-size:11px;color:#666}
+.pi-vertex{width:14px;height:14px;border-radius:50%;background:#e03131;border:2px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.7);box-sizing:border-box}
+.pi-vertex.pi-first{background:#2b8a3e}
+.pi-drawing.leaflet-container,.pi-drawing.leaflet-container .leaflet-interactive{cursor:crosshair}
+.pi-drawing .leaflet-pane path.leaflet-interactive,.pi-drawing .leaflet-pane svg,.pi-drawing .leaflet-pane .leaflet-interactive:not(.leaflet-marker-icon){pointer-events:none !important}
+.pi-drawing .leaflet-overlay-pane canvas{pointer-events:none !important}
+@media (max-width:600px){.pi-panel{left:5px;right:5px;bottom:5px;width:auto;max-width:none;max-height:60%}}
+
+.pi-hbtn{display:flex;gap:2px}
+.pi-min{border:0;background:none;font-size:18px;line-height:1;cursor:pointer;color:#555;padding:0 6px}
+.pi-panel.pi-mini{width:290px;padding:8px 10px}
+.pi-mini .pi-help,.pi-mini label,.pi-mini input[type=text],.pi-mini textarea,.pi-mini select,.pi-mini .pi-priv,.pi-mini .pi-r-import,.pi-mini .pi-long{display:none}
+.pi-mini .pi-head{margin-bottom:2px;font-size:14px}
+.pi-mini .pi-stats{margin:4px 0}
+.pi-mini .pi-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.pi-mini .pi-actions .pi-row{display:contents}
+@media (max-width:600px){.pi-panel.pi-mini{width:auto}}
+
+.pi-btn-sg{margin-top:6px !important}
+.pi-btn-sg a{background:var(--cdl-accent)}
+.pi-btn-sg a:hover{background:var(--cdl-accent-fonce)}
+.pi-sg select{width:100%;box-sizing:border-box;border:1px solid #bbb;border-radius:3px;padding:5px 6px;font:13px Arial,sans-serif;background:#fff}
+.pi-sgpin{width:26px;height:26px;border-radius:50%;background:var(--cdl-accent);border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.7);box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.pi-sgpin{color:#fff;font:700 14px/1 Arial,sans-serif}
+
+/* Bandeau d'en-tête */
+html,body{height:100%}
+body{display:flex;flex-direction:column;font-family:var(--cdl-police)}
+#map{flex:1 1 auto;height:auto !important;min-height:0}
+#cdl-header{flex:0 0 auto;display:flex;align-items:center;gap:16px;background:#fff;color:var(--cdl-bleu);padding:6px 16px;border-bottom:3px solid var(--cdl-bleu);box-shadow:0 1px 6px rgba(0,0,0,.25);box-sizing:border-box;min-height:56px;z-index:1200;font-family:var(--cdl-police)}
+#cdl-header .cdl-logo{display:flex;align-items:center;color:#fff;text-decoration:none;flex:0 0 auto}
+#cdl-header .cdl-logo img{height:42px;width:auto;display:block}
+#cdl-header .cdl-logo-txt{display:none;font-weight:700;font-size:14px;line-height:1.1;max-width:120px}
+#cdl-header .cdl-nologo img{display:none}
+#cdl-header .cdl-nologo .cdl-logo-txt{display:block}
+#cdl-header .cdl-titres{border-left:1px solid #c9d6e2;padding-left:16px;min-width:0}
+#cdl-header h1{margin:0;font-size:19px;line-height:1.2;font-weight:700;color:var(--cdl-bleu)}
+#cdl-header p{margin:2px 0 0;font-size:12.5px;color:#555}
+@media (max-width:600px){
+  #cdl-header{gap:10px;padding:4px 10px;min-height:46px}
+  #cdl-header .cdl-logo img{height:32px}
+  #cdl-header .cdl-titres{padding-left:10px}
+  #cdl-header h1{font-size:14px}
+  #cdl-header p{font-size:11px}
+}
+#cdl-header a,#cdl-header .cdl-logo-txt{color:var(--cdl-bleu) !important;text-shadow:none}
+
+#cdl-header .cdl-gt{margin-left:auto;flex:0 0 auto;display:flex;align-items:center}
+#cdl-header .cdl-gt img.cdl-gt-full{display:block;height:52px;width:auto}
+#cdl-header .cdl-gt img.cdl-gt-mini{display:none;height:36px;width:auto}
+@media (max-width:900px){#cdl-header .cdl-gt img.cdl-gt-full{display:none}#cdl-header .cdl-gt img.cdl-gt-mini{display:block}}

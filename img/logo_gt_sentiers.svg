@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 240" width="700" height="240" font-family="'Open Sans','Segoe UI',Arial,sans-serif">
+  <defs>
+    <clipPath id="rond"><circle cx="120" cy="120" r="108"/></clipPath>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9ecf8"/><stop offset="1" stop-color="#f4faff"/></linearGradient>
+  </defs>
+  <!-- emblème -->
+  <g clip-path="url(#rond)">
+    <rect width="240" height="240" fill="url(#ciel)"/>
+    <circle cx="178" cy="62" r="17" fill="#f2b632"/>
+    <!-- collines lointaines -->
+    <path d="M0 150 L50 112 L88 138 L132 92 L176 132 L240 108 V240 H0Z" fill="#7fb069"/>
+    <!-- colline principale -->
+    <path d="M-10 190 C40 150 70 100 118 58 C150 90 190 150 250 175 V250 H-10Z" fill="#3f8a4f"/>
+    <!-- mer / lagon -->
+    <path d="M0 180 C30 170 55 206 85 196 S145 170 175 180 S215 190 240 178 V240 H0Z" fill="#0068b0"/>
+    <path d="M0 202 C30 193 55 210 85 202 S145 193 175 202 S215 212 240 200 V240 H0Z" fill="#00538c"/>
+    <!-- sentier -->
+    <path d="M86 190 C128 184 168 176 150 168 C132 150 70 158 84 138 C98 118 150 122 128 100 C116 88 112 80 118 70"
+          fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".95"/>
+    <path d="M86 190 C128 184 168 176 150 168 C132 150 70 158 84 138 C98 118 150 122 128 100 C116 88 112 80 118 70"
+          fill="none" stroke="#e8590c" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 11"/>
+    <!-- point d'arrivée -->
+    <circle cx="118" cy="62" r="9" fill="#e8590c" stroke="#fff" stroke-width="3"/>
+  </g>
+  <circle cx="120" cy="120" r="108" fill="none" stroke="#0068b0" stroke-width="8"/>
+  <!-- texte -->
+  <text x="262" y="80" font-size="27" font-weight="700" letter-spacing="5" fill="#3f8a4f">GROUPE DE TRAVAIL</text>
+  <text x="258" y="152" font-size="56" font-weight="800" fill="#0068b0">Sentiers</text>
+  <text x="258" y="208" font-size="56" font-weight="800" fill="#0068b0">de Mayotte</text>
+  <rect x="262" y="93" width="96" height="5" rx="2.5" fill="#e8590c"/>
+</svg>
