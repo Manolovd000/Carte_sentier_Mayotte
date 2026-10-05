@@ -21,12 +21,12 @@
             margin: 0;
         }
         </style>
-        <!-- version 2026-10-05g : bandeau Conservatoire, sans suivi GPS : alerte securite, date, signalement, questions proposition, recherche -->
+        <!-- version 2026-10-05k : bandeau Conservatoire, sans suivi GPS : alerte securite, date, signalement, questions proposition, recherche -->
 <title>Sentiers de Mayotte | Conservatoire du littoral</title>
             <meta name="theme-color" content="#0068b0">
             <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
             <link rel="icon" type="image/png" href="img/favicon.png">
-            <link rel="stylesheet" href="css/proposer_itineraire.css?v=20261005g">
+            <link rel="stylesheet" href="css/proposer_itineraire.css?v=20261005k">
     <style>
 .pi-alert{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:1000;width:max-content;max-width:min(560px,calc(100% - 24px));box-sizing:border-box;background:rgba(255,255,255,.92);color:#444;border:1px solid rgba(0,0,0,.12);border-radius:6px;padding:7px 30px 7px 11px;font:12.5px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .pi-alert a{color:var(--cdl-bleu,#1a5fb4);text-decoration:underline}
@@ -38,6 +38,7 @@
 .pi-search input{width:100%;box-sizing:border-box;border:1px solid #bbb;border-radius:4px;padding:6px 8px;font:14px system-ui,Arial,sans-serif}
 .pi-search-none{font-size:12px;color:#777;padding:4px 2px}
 .leaflet-control-layers table tr:hover td:last-child{text-decoration:underline}
+@media (max-width:600px){.pi-popup-open .pi-btn-ctl{display:none}}
 </style>
     </head>
     <body>
@@ -77,7 +78,7 @@
         <script src="js/leaflet.photon.js"></script>
         <script src="js/leaflet-measure.js"></script>
         <script src="data/ConservatoiredulittoralParcellesprotgesMayotte_2.js"></script>
-        <script src="data/Sentiersnomms_3.js?v=20261005g"></script>
+        <script src="data/Sentiersnomms_3.js?v=20261005k"></script>
         <script src="data/ONFForetsPubliques_4.js"></script>
         <script src="data/RNNReservesNaturelles_5.js"></script>
         <script>
@@ -309,6 +310,80 @@
             })(layer.getLatLngs());
             return tot >= 1000 ? (tot / 1000).toFixed(2).replace('.', ',') + ' km' : Math.round(tot) + ' m';
         }
+        /* === Altitude : statistiques + profil altimétrique (données précalculées dans les propriétés) === */
+        function piFmtKm(m) { return (m / 1000).toFixed(2).replace('.', ',') + ' km'; }
+        function piAltitude(feature) {
+            var p = feature.properties;
+            if (!p.profil || !p.profil.length) {
+                return '<span style="color:#777">Altitude : donnée non disponible pour ce tracé</span>';
+            }
+            var pr = p.profil, W = 290, H = 104, L = 32, R = 8, T = 10, B = 20;
+            var dmax = pr[pr.length - 1][0] || 1;
+            var zs = pr.map(function (q) { return Math.max(0, q[1]); });
+            var zmin = Math.floor(Math.min.apply(null, zs) / 10) * 10, zmax = Math.ceil(Math.max.apply(null, zs) / 10) * 10;
+            if (zmax - zmin < 20) { zmax = zmin + 20; }
+            function X(d) { return L + (W - L - R) * d / dmax; }
+            function Y(z) { return T + (H - T - B) * (1 - (z - zmin) / (zmax - zmin)); }
+            var line = pr.map(function (q, i) { return (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(Math.max(0, q[1])).toFixed(1); }).join('');
+            var area = line + 'L' + X(dmax).toFixed(1) + ' ' + (H - B) + 'L' + L + ' ' + (H - B) + 'Z';
+            var svg = '<svg class="pi-prof" viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:300px;display:block;margin-top:4px;touch-action:none;font:10px Arial,sans-serif" data-dmax="' + dmax + '" data-l="' + L + '" data-w="' + (W - L - R) + '">'
+                + '<path d="' + area + '" fill="rgba(0,104,176,.18)"/>'
+                + '<path d="' + line + '" fill="none" stroke="#0068b0" stroke-width="1.8" stroke-linejoin="round"/>'
+                + '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="#999" stroke-width=".8"/>'
+                + '<text x="' + (L - 4) + '" y="' + (T + 3) + '" text-anchor="end" fill="#555">' + zmax + ' m</text>'
+                + '<text x="' + (L - 4) + '" y="' + (H - B) + '" text-anchor="end" fill="#555">' + zmin + ' m</text>'
+                + '<text x="' + L + '" y="' + (H - 6) + '" fill="#555">0</text>'
+                + '<text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" fill="#555">' + piFmtKm(dmax) + '</text>'
+                + '<line class="pi-cur" x1="0" y1="' + T + '" x2="0" y2="' + (H - B) + '" stroke="#e8590c" stroke-width="1" style="display:none"/>'
+                + '<circle class="pi-dot" r="3.5" cx="0" cy="0" fill="#e8590c" stroke="#fff" stroke-width="1" style="display:none"/>'
+                + '<text class="pi-read" x="' + (W - R) + '" y="' + (T + 3) + '" text-anchor="end" fill="#222" font-weight="bold"></text>'
+                + '</svg>';
+            return '<b>Altitude :</b> ' + Math.max(0, p.alt_min) + ' à ' + p.alt_max + ' m<br>'
+                + '<b>Dénivelé :</b> +' + p.dplus + ' m / −' + p.dmoins + ' m' + svg
+                + '<span style="color:#888;font-size:11px">Profil le long de la trace enregistrée · altitudes GPS à ± 10 m près</span>';
+        }
+        var piProfMarker = null;
+        function piProfBind(layer, popup) {
+            map.getContainer().classList.add('pi-popup-open');
+            var svg = popup._contentNode && popup._contentNode.querySelector('.pi-prof');
+            if (!svg) { return; }
+            var p = layer.feature.properties, pr = p.profil, dmax = +svg.getAttribute('data-dmax'), X0 = +svg.getAttribute('data-l'), W = +svg.getAttribute('data-w');
+            var vb = svg.viewBox.baseVal;
+            var ll = layer.getLatLngs(); while (ll.length && Array.isArray(ll[0])) { ll = ll[0]; }
+            var cum = [0], i;
+            for (i = 1; i < ll.length; i++) { cum.push(cum[i - 1] + map.distance(ll[i - 1], ll[i])); }
+            var total = cum[cum.length - 1] || 1;
+            var cur = svg.querySelector('.pi-cur'), dot = svg.querySelector('.pi-dot'), rd = svg.querySelector('.pi-read');
+            var zs = pr.map(function (q) { return Math.max(0, q[1]); });
+            var zmin = Math.floor(Math.min.apply(null, zs) / 10) * 10, zmax = Math.ceil(Math.max.apply(null, zs) / 10) * 10;
+            if (zmax - zmin < 20) { zmax = zmin + 20; }
+            var T = 10, B = 20, H = vb.height;
+            function move(ev) {
+                var pt = ev.touches ? ev.touches[0] : ev, r = svg.getBoundingClientRect();
+                var x = (pt.clientX - r.left) / r.width * vb.width;
+                var f = Math.min(1, Math.max(0, (x - X0) / W));
+                var d = f * dmax, k = 0;
+                for (i = 0; i < pr.length; i++) { if (pr[i][0] <= d) { k = i; } }
+                var k2 = Math.min(k + 1, pr.length - 1), t = pr[k2][0] > pr[k][0] ? (d - pr[k][0]) / (pr[k2][0] - pr[k][0]) : 0;
+                var z = Math.max(0, pr[k][1] + (pr[k2][1] - pr[k][1]) * t);
+                var cx = X0 + W * f, cy = T + (H - T - B) * (1 - (z - zmin) / (zmax - zmin));
+                cur.setAttribute('x1', cx); cur.setAttribute('x2', cx); dot.setAttribute('cx', cx); dot.setAttribute('cy', cy);
+                cur.style.display = dot.style.display = '';
+                rd.textContent = piFmtKm(d) + ' · ' + Math.round(z) + ' m';
+                var target = f * total, j = 1; while (j < cum.length - 1 && cum[j] < target) { j++; }
+                var seg = cum[j] - cum[j - 1] || 1, u = Math.min(1, Math.max(0, (target - cum[j - 1]) / seg));
+                var pos = piMid(ll[j - 1], ll[j], u);
+                if (!piProfMarker) { piProfMarker = L.circleMarker(pos, { radius: 7, color: '#fff', weight: 2, fillColor: '#e8590c', fillOpacity: 1, interactive: false, pane: 'popupPane' }).addTo(map); }
+                else { piProfMarker.setLatLng(pos); }
+                if (ev.cancelable && ev.touches) { ev.preventDefault(); }
+            }
+            function piMid(a, b, u) { return [a.lat + (b.lat - a.lat) * u, a.lng + (b.lng - a.lng) * u]; }
+            svg.addEventListener('mousemove', move);
+            svg.addEventListener('touchstart', move, { passive: false });
+            svg.addEventListener('touchmove', move, { passive: false });
+        }
+        function piProfClear() { map.getContainer().classList.remove('pi-popup-open'); if (piProfMarker) { map.removeLayer(piProfMarker); piProfMarker = null; } }
+
         function pop_Sentiersnomms_3(feature, layer) {
             /* survol désactivé (fluidité) */
             var popupContent = '<table>\
@@ -316,17 +391,25 @@
                         <td colspan="2">' + (feature.properties['nom'] !== null ? autolinker.link(String(feature.properties['nom']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
                     </tr>\
                     <tr>\
+                        <td colspan="2">' + (feature.properties['description'] ? String(feature.properties['description']) : '') + '</td>\
+                    </tr>\
+                    <tr>\
                         <td colspan="2">' + (feature.properties['sources'] !== null ? autolinker.link(String(feature.properties['sources']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
                     </tr>\
                 <tr>\
                         <td colspan="2"><b>Longueur :</b> ' + piLongueur(layer, feature) + '</td>\
                     </tr>\
+                    <tr>\
+                        <td colspan="2">' + piAltitude(feature) + '</td>\
+                    </tr>\
                 </table>';
             var content = removeEmptyRowsFromPopupContent(popupContent, feature);
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
+				piProfBind(layer, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			layer.on('popupclose', piProfClear);
+			layer.bindPopup(content, { maxHeight: 400, minWidth: 270 });
         }
 
         function style_Sentiersnomms_3_0(feature) {
@@ -942,11 +1025,89 @@
                 interactive: true,
             }
                     break;
-                case 'Sentier du collège de Tsingoni':
+                case 'Sentier des 5èmes':
                     return {
                 pane: 'pane_Sentiersnomms_3',
                 opacity: 1,
                 color: 'rgba(130,119,23,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Sohoa-Combani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(0,77,64,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la retenue collinaire 2':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(0,200,83,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier du lac de Karihani 2':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(41,98,255,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la petite Boueni':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(233,30,99,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier des padzas de Combani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(141,110,99,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier du débarcadère':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(3,155,229,1.0)',
                 dashArray: '',
                 lineCap: 'round',
                 lineJoin: 'bevel',
@@ -1082,7 +1243,7 @@
         });
         map.addLayer(layer_RNNReservesNaturelles_5);
         var overlaysTree = [
-            {label: 'Sentiers nommés<br /><table><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_AccèsMontCombani0.png" /></td><td>Accès Mont Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_AscensionduMontChoungui1.png" /></td><td>Ascension du Mont Choungui</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_BoucleHalifaBaco2.png" /></td><td>Boucle Halifa Baco</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_CascadedHajangoua3.png" /></td><td>Cascade d\'Hajangoua</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_GR1TourdeMayotte4.png" /></td><td>Ancien GR 1 – Tour de Mayotte</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_MarchesdAcoua5.png" /></td><td>Marches d\'Acoua</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Pistemaisondugouverneur6.png" /></td><td>Piste maison du gouverneur</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_PisteMajimbini7.png" /></td><td>Piste Majimbini</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Pisteretenuecollinaire8.png" /></td><td>Piste retenue collinaire</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierCratèreDziani9.png" /></td><td>Sentier Cratère Dziani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierDadiTif10.png" /></td><td>Sentier Dadi Tif</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaCascade11.png" /></td><td>Sentier de la Cascade</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaMairie12.png" /></td><td>Sentier de la Mairie</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaMaisondelaConvalescence13.png" /></td><td>Sentier de la Maison de la Convalescence</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaPlagedeNgouja14.png" /></td><td>Sentier de la Plage de Ngouja</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaPlageduPréfet15.png" /></td><td>Sentier de la Plage du Préfet</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelapointedeMahabou47.png" /></td><td>Sentier de la pointe de Mahabou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaretenuecollinairedeCombani48.png" /></td><td>Sentier de la retenue collinaire de Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierducollègedeTsingoni49.png" /></td><td>Sentier du collège de Tsingoni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdesBaobabs16.png" /></td><td>Sentier des Baobabs</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdesCrêtesdeBandrele17.png" /></td><td>Sentier des Crêtes de Bandrele</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Sentierdestortues18.png" /></td><td>Sentier des tortues</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdulacdeKarihani41.png" /></td><td>Sentier du lac de Karihani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierduMontChounguideChirongui45.png" /></td><td>Sentier du Mont Choungui de Chirongui</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierGrottedeMtsoumbatsou19.png" /></td><td>Sentier Grotte de Mtsoumbatsou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierKadjifoutchéni20.png" /></td><td>Sentier Kadjifoutchéni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierLacDziani21.png" /></td><td>Sentier Lac Dziani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierlongdeOuangani42.png" /></td><td>Sentier long de Ouangani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierlongdumontBénara46.png" /></td><td>Sentier long du mont Bénara</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMTsagnougni22.png" /></td><td>Sentier M\'Tsagnougni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMangrovedeDapani23.png" /></td><td>Sentier Mangrove de Dapani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMoya24.png" /></td><td>Sentier Moya</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMtsoumbatsou25.png" /></td><td>Sentier Mtsoumbatsou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierPadzadeBouéni26.png" /></td><td>Sentier Padza de Bouéni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierplagedeSoulou27.png" /></td><td>Sentier plage de Soulou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierplageKoloBatsoumou28.png" /></td><td>Sentier plage Kolo Batsoumou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierpointeBandrélé29.png" /></td><td>Sentier pointe Bandrélé</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierrougedeKahani43.png" /></td><td>Sentier rouge de Kahani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierSaziley30.png" /></td><td>Sentier Saziley</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentiersousmarindulagonYatru31.png" /></td><td>Sentier sous-marin du lagon (Yatru)</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueBleue32.png" /></td><td>Sentier Tortue Bleue</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueJaune33.png" /></td><td>Sentier Tortue Jaune</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueRouge34.png" /></td><td>Sentier Tortue Rouge</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueVerte35.png" /></td><td>Sentier Tortue Verte</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierVanilledeChiconi36.png" /></td><td>Sentier Vanille de Chiconi</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierversMtsangaFanou37.png" /></td><td>Sentier vers Mtsanga Fanou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierYlangdeDzoumogné38.png" /></td><td>Sentier Ylang de Dzoumogné</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierYlangYlangdeMtsamboro39.png" /></td><td>Sentier Ylang Ylang de Mtsamboro</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_TourduDzianiDaha40.png" /></td><td>Tour du Dziani Daha</td></tr></table>', layer: layer_Sentiersnomms_3},
+            {label: 'Sentiers nommés<br /><table><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_AccèsMontCombani0.png" /></td><td>Accès Mont Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_AscensionduMontChoungui1.png" /></td><td>Ascension du Mont Choungui</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_BoucleHalifaBaco2.png" /></td><td>Boucle Halifa Baco</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_CascadedHajangoua3.png" /></td><td>Cascade d\'Hajangoua</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_GR1TourdeMayotte4.png" /></td><td>Ancien GR 1 – Tour de Mayotte</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_MarchesdAcoua5.png" /></td><td>Marches d\'Acoua</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Pistemaisondugouverneur6.png" /></td><td>Piste maison du gouverneur</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_PisteMajimbini7.png" /></td><td>Piste Majimbini</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Pisteretenuecollinaire8.png" /></td><td>Piste retenue collinaire</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierCratèreDziani9.png" /></td><td>Sentier Cratère Dziani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierDadiTif10.png" /></td><td>Sentier Dadi Tif</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaCascade11.png" /></td><td>Sentier de la Cascade</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaMairie12.png" /></td><td>Sentier de la Mairie</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaMaisondelaConvalescence13.png" /></td><td>Sentier de la Maison de la Convalescence</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaPlagedeNgouja14.png" /></td><td>Sentier de la Plage de Ngouja</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaPlageduPréfet15.png" /></td><td>Sentier de la Plage du Préfet</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelapointedeMahabou47.png" /></td><td>Sentier de la pointe de Mahabou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaretenuecollinairedeCombani48.png" /></td><td>Sentier de la retenue collinaire de Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierSohoa-Combani50.png" /></td><td>Sentier Sohoa-Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Sentierdelaretenuecollinaire251.png" /></td><td>Sentier de la retenue collinaire 2</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdulacdeKarihani252.png" /></td><td>Sentier du lac de Karihani 2</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelapetiteBoueni53.png" /></td><td>Sentier de la petite Boueni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdespadzasdeCombani54.png" /></td><td>Sentier des padzas de Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Sentierdudébarcadère55.png" /></td><td>Sentier du débarcadère</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierducollègedeTsingoni49.png" /></td><td>Sentier des 5èmes</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdesBaobabs16.png" /></td><td>Sentier des Baobabs</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdesCrêtesdeBandrele17.png" /></td><td>Sentier des Crêtes de Bandrele</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Sentierdestortues18.png" /></td><td>Sentier des tortues</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdulacdeKarihani41.png" /></td><td>Sentier du lac de Karihani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierduMontChounguideChirongui45.png" /></td><td>Sentier du Mont Choungui de Chirongui</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierGrottedeMtsoumbatsou19.png" /></td><td>Sentier Grotte de Mtsoumbatsou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierKadjifoutchéni20.png" /></td><td>Sentier Kadjifoutchéni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierLacDziani21.png" /></td><td>Sentier Lac Dziani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierlongdeOuangani42.png" /></td><td>Sentier long de Ouangani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierlongdumontBénara46.png" /></td><td>Sentier long du mont Bénara</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMTsagnougni22.png" /></td><td>Sentier M\'Tsagnougni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMangrovedeDapani23.png" /></td><td>Sentier Mangrove de Dapani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMoya24.png" /></td><td>Sentier Moya</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMtsoumbatsou25.png" /></td><td>Sentier Mtsoumbatsou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierPadzadeBouéni26.png" /></td><td>Sentier Padza de Bouéni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierplagedeSoulou27.png" /></td><td>Sentier plage de Soulou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierplageKoloBatsoumou28.png" /></td><td>Sentier plage Kolo Batsoumou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierpointeBandrélé29.png" /></td><td>Sentier pointe Bandrélé</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierrougedeKahani43.png" /></td><td>Sentier rouge de Kahani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierSaziley30.png" /></td><td>Sentier Saziley</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentiersousmarindulagonYatru31.png" /></td><td>Sentier sous-marin du lagon (Yatru)</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueBleue32.png" /></td><td>Sentier Tortue Bleue</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueJaune33.png" /></td><td>Sentier Tortue Jaune</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueRouge34.png" /></td><td>Sentier Tortue Rouge</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueVerte35.png" /></td><td>Sentier Tortue Verte</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierVanilledeChiconi36.png" /></td><td>Sentier Vanille de Chiconi</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierversMtsangaFanou37.png" /></td><td>Sentier vers Mtsanga Fanou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierYlangdeDzoumogné38.png" /></td><td>Sentier Ylang de Dzoumogné</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierYlangYlangdeMtsamboro39.png" /></td><td>Sentier Ylang Ylang de Mtsamboro</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_TourduDzianiDaha40.png" /></td><td>Tour du Dziani Daha</td></tr></table>', layer: layer_Sentiersnomms_3},
             {label: '<img src="legend/ConservatoiredulittoralParcellesprotgesMayotte_2.png" /> Conservatoire du littoral - Parcelles protégées (Mayotte)', layer: layer_ConservatoiredulittoralParcellesprotgesMayotte_2},
             {label: '<img src="legend/ONFForetsPubliques_4.png" /> ONF - Forêts publiques (domaniales et départementales)', layer: layer_ONFForetsPubliques_4},
             {label: '<img src="legend/RNNReservesNaturelles_5.png" /> Réserves naturelles nationales (RNN)', layer: layer_RNNReservesNaturelles_5},
@@ -1278,6 +1439,6 @@
             });
         })();
 </script>
-<script src="js/proposer_itineraire.js?v=20261005g"></script>
+<script src="js/proposer_itineraire.js?v=20261005k"></script>
     </body>
 </html>
