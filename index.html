@@ -1,0 +1,1444 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <!-- version 2026-10-05k : bandeau Conservatoire, sans suivi GPS : alerte securite, date, signalement, questions proposition, recherche -->
+<title>Sentiers de Mayotte | Conservatoire du littoral</title>
+            <meta name="theme-color" content="#0068b0">
+            <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+            <link rel="icon" type="image/png" href="img/favicon.png">
+            <link rel="stylesheet" href="css/proposer_itineraire.css?v=20261005k">
+    <style>
+.pi-alert{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:1000;width:max-content;max-width:min(560px,calc(100% - 24px));box-sizing:border-box;background:rgba(255,255,255,.92);color:#444;border:1px solid rgba(0,0,0,.12);border-radius:6px;padding:7px 30px 7px 11px;font:12.5px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.pi-alert a{color:var(--cdl-bleu,#1a5fb4);text-decoration:underline}
+.pi-alert-sub{display:block;margin-top:3px;color:#666;font-size:11.5px}
+.pi-alert button{position:absolute;top:2px;right:3px;width:24px;height:24px;border:0;background:transparent;color:#777;font-size:18px;line-height:20px;cursor:pointer;border-radius:4px}
+.pi-alert button:hover{background:rgba(0,0,0,.07);color:#222}
+.leaflet-control-layers table tr{cursor:pointer}
+.pi-search{padding:4px 2px 6px}
+.pi-search input{width:100%;box-sizing:border-box;border:1px solid #bbb;border-radius:4px;padding:6px 8px;font:14px system-ui,Arial,sans-serif}
+.pi-search-none{font-size:12px;color:#777;padding:4px 2px}
+.leaflet-control-layers table tr:hover td:last-child{text-decoration:underline}
+@media (max-width:600px){.pi-popup-open .pi-btn-ctl{display:none}}
+</style>
+    </head>
+    <body>
+        <header id="cdl-header">
+            <a class="cdl-logo" href="https://www.conservatoire-du-littoral.fr" target="_blank" rel="noopener" title="Conservatoire du littoral">
+                <img src="img/logo_conservatoire_du_littoral.png" alt="Conservatoire du littoral" onerror="this.parentNode.classList.add('cdl-nologo')">
+                <span class="cdl-logo-txt">Conservatoire du littoral</span>
+            </a>
+            <div class="cdl-titres">
+                <h1>Sentiers de Mayotte – Carte participative</h1>
+                <p>Délégation Mayotte</p>
+            </div>
+            <div class="cdl-gt" title="Groupe de travail des sentiers de Mayotte">
+                <img class="cdl-gt-full" src="img/logo_gt_sentiers.svg" alt="Groupe de travail Sentiers de Mayotte">
+                <img class="cdl-gt-mini" src="img/logo_gt_emblem.svg" alt="Groupe de travail Sentiers de Mayotte">
+            </div>
+        </header>
+        <div id="map">
+        </div>
+        <div class="pi-alert" id="pi-alert" role="note" style="display:none">
+            <span><b>Traces non vérifiées.</b> Pour fiabiliser ces itinéraires, merci de signaler toute erreur ou tronçon non praticable à <a href="mailto:m.videau@conservatoire-du-littoral.fr?subject=Carte%20des%20sentiers%20de%20Mayotte%20-%20signalement">m.videau@conservatoire-du-littoral.fr</a>.</span>
+            <span class="pi-alert-sub">Itinéraires donnés à titre indicatif : chacun reste responsable de sa sortie (météo, marée, état du sentier, propriétés privées).</span>
+            <button type="button" id="pi-alert-close" aria-label="Fermer ce message" title="Fermer">&times;</button>
+        </div>
+
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="data/ConservatoiredulittoralParcellesprotgesMayotte_2.js"></script>
+        <script src="data/Sentiersnomms_3.js?v=20261005k"></script>
+        <script src="data/ONFForetsPubliques_4.js"></script>
+        <script src="data/RNNReservesNaturelles_5.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: 'rgba(255, 255, 0, 1.00)',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: 'rgba(255, 255, 0, 1.00)',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:19, minZoom:8
+        })
+        // L.Hash désactivé : il ramenait la carte en arrière pendant le déplacement quand la page est lente.
+        // Rendu SVG conservé : le rendu canvas faisait planter certains navigateurs de test.
+        map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    var img = popup._contentNode.querySelector('td img');
+                    if (img) {
+                        // If already loaded (cache), update immediately
+                        if (img.complete && img.naturalHeight > 0) {
+                            popup.update();
+                        } else {
+                            img.addEventListener('load', function() {
+                                popup.update();
+                            });
+                            img.addEventListener('error', function() {
+                                popup.update();
+                            });
+                        }
+                    }
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '';
+        };
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            keepBuffer: 4,
+            opacity: 1.0,
+            attribution: '&copy; contributeurs OpenStreetMap',
+            minZoom: 8,
+            maxZoom: 19,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OpenStreetMap_0;
+        map.createPane('pane_PlanIGN_1');
+        map.getPane('pane_PlanIGN_1').style.zIndex = 401;
+        var layer_PlanIGN_1 = L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&FORMAT=image/png', {
+            pane: 'pane_PlanIGN_1',
+            keepBuffer: 4,
+            opacity: 1.0,
+            attribution: '&copy; IGN',
+            minZoom: 8,
+            maxZoom: 19,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_PlanIGN_1;
+        map.addLayer(layer_PlanIGN_1);
+
+        map.createPane('pane_OrthoIGN_6');
+        map.getPane('pane_OrthoIGN_6').style.zIndex = 401;
+        var layer_OrthoIGN_6 = L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg', {
+            pane: 'pane_OrthoIGN_6',
+            keepBuffer: 4,
+            opacity: 1.0,
+            attribution: '&copy; IGN',
+            minZoom: 8,
+            maxZoom: 19,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        function pop_ConservatoiredulittoralParcellesprotgesMayotte_2(feature, layer) {
+            /* survol désactivé (fluidité) */
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id_parc'] !== null ? autolinker.link(String(feature.properties['id_parc']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['com_nom'] !== null ? autolinker.link(String(feature.properties['com_nom']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['pera_nom'] !== null ? autolinker.link(String(feature.properties['pera_nom']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['surface_protegee'] !== null ? autolinker.link(String(feature.properties['surface_protegee']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_ConservatoiredulittoralParcellesprotgesMayotte_2_0() {
+            return {
+                pane: 'pane_ConservatoiredulittoralParcellesprotgesMayotte_2',
+                opacity: 1,
+                color: 'rgba(38,89,128,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.5, 
+                fill: true,
+                fillOpacity: 0.2,
+                fillColor: 'rgba(42,139,219,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_ConservatoiredulittoralParcellesprotgesMayotte_2');
+        map.getPane('pane_ConservatoiredulittoralParcellesprotgesMayotte_2').style.zIndex = 402;
+        map.getPane('pane_ConservatoiredulittoralParcellesprotgesMayotte_2').style['mix-blend-mode'] = 'normal';
+        var layer_ConservatoiredulittoralParcellesprotgesMayotte_2 = new L.geoJson(json_ConservatoiredulittoralParcellesprotgesMayotte_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_ConservatoiredulittoralParcellesprotgesMayotte_2',
+            layerName: 'layer_ConservatoiredulittoralParcellesprotgesMayotte_2',
+            pane: 'pane_ConservatoiredulittoralParcellesprotgesMayotte_2',
+            onEachFeature: pop_ConservatoiredulittoralParcellesprotgesMayotte_2,
+            style: style_ConservatoiredulittoralParcellesprotgesMayotte_2_0,
+        });
+        bounds_group.addLayer(layer_ConservatoiredulittoralParcellesprotgesMayotte_2);
+        map.addLayer(layer_ConservatoiredulittoralParcellesprotgesMayotte_2);
+        function piLongueur(layer, feature) {
+            var tot = 0;
+            /* longueur_m = longueur réelle du sentier, tronçons superposés (BD TOPO + OSM) comptés une seule fois */
+            if (feature && feature.properties && feature.properties.longueur_m != null) { tot = +feature.properties.longueur_m; return tot >= 1000 ? (tot / 1000).toFixed(2).replace('.', ',') + ' km' : Math.round(tot) + ' m'; }
+            (function walk(a) {
+                if (!a.length) { return; }
+                if (a[0] instanceof L.LatLng) {
+                    for (var i = 1; i < a.length; i++) { tot += a[i - 1].distanceTo(a[i]); }
+                } else { a.forEach(walk); }
+            })(layer.getLatLngs());
+            return tot >= 1000 ? (tot / 1000).toFixed(2).replace('.', ',') + ' km' : Math.round(tot) + ' m';
+        }
+        /* === Altitude : statistiques + profil altimétrique (données précalculées dans les propriétés) === */
+        function piFmtKm(m) { return (m / 1000).toFixed(2).replace('.', ',') + ' km'; }
+        function piAltitude(feature) {
+            var p = feature.properties;
+            if (!p.profil || !p.profil.length) {
+                return '<span style="color:#777">Altitude : donnée non disponible pour ce tracé</span>';
+            }
+            var pr = p.profil, W = 290, H = 104, L = 32, R = 8, T = 10, B = 20;
+            var dmax = pr[pr.length - 1][0] || 1;
+            var zs = pr.map(function (q) { return Math.max(0, q[1]); });
+            var zmin = Math.floor(Math.min.apply(null, zs) / 10) * 10, zmax = Math.ceil(Math.max.apply(null, zs) / 10) * 10;
+            if (zmax - zmin < 20) { zmax = zmin + 20; }
+            function X(d) { return L + (W - L - R) * d / dmax; }
+            function Y(z) { return T + (H - T - B) * (1 - (z - zmin) / (zmax - zmin)); }
+            var line = pr.map(function (q, i) { return (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(Math.max(0, q[1])).toFixed(1); }).join('');
+            var area = line + 'L' + X(dmax).toFixed(1) + ' ' + (H - B) + 'L' + L + ' ' + (H - B) + 'Z';
+            var svg = '<svg class="pi-prof" viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:300px;display:block;margin-top:4px;touch-action:none;font:10px Arial,sans-serif" data-dmax="' + dmax + '" data-l="' + L + '" data-w="' + (W - L - R) + '">'
+                + '<path d="' + area + '" fill="rgba(0,104,176,.18)"/>'
+                + '<path d="' + line + '" fill="none" stroke="#0068b0" stroke-width="1.8" stroke-linejoin="round"/>'
+                + '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="#999" stroke-width=".8"/>'
+                + '<text x="' + (L - 4) + '" y="' + (T + 3) + '" text-anchor="end" fill="#555">' + zmax + ' m</text>'
+                + '<text x="' + (L - 4) + '" y="' + (H - B) + '" text-anchor="end" fill="#555">' + zmin + ' m</text>'
+                + '<text x="' + L + '" y="' + (H - 6) + '" fill="#555">0</text>'
+                + '<text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" fill="#555">' + piFmtKm(dmax) + '</text>'
+                + '<line class="pi-cur" x1="0" y1="' + T + '" x2="0" y2="' + (H - B) + '" stroke="#e8590c" stroke-width="1" style="display:none"/>'
+                + '<circle class="pi-dot" r="3.5" cx="0" cy="0" fill="#e8590c" stroke="#fff" stroke-width="1" style="display:none"/>'
+                + '<text class="pi-read" x="' + (W - R) + '" y="' + (T + 3) + '" text-anchor="end" fill="#222" font-weight="bold"></text>'
+                + '</svg>';
+            return '<b>Altitude :</b> ' + Math.max(0, p.alt_min) + ' à ' + p.alt_max + ' m<br>'
+                + '<b>Dénivelé :</b> +' + p.dplus + ' m / −' + p.dmoins + ' m' + svg
+                + '<span style="color:#888;font-size:11px">Profil le long de la trace enregistrée · altitudes GPS à ± 10 m près</span>';
+        }
+        var piProfMarker = null;
+        function piProfBind(layer, popup) {
+            map.getContainer().classList.add('pi-popup-open');
+            var svg = popup._contentNode && popup._contentNode.querySelector('.pi-prof');
+            if (!svg) { return; }
+            var p = layer.feature.properties, pr = p.profil, dmax = +svg.getAttribute('data-dmax'), X0 = +svg.getAttribute('data-l'), W = +svg.getAttribute('data-w');
+            var vb = svg.viewBox.baseVal;
+            var ll = layer.getLatLngs(); while (ll.length && Array.isArray(ll[0])) { ll = ll[0]; }
+            var cum = [0], i;
+            for (i = 1; i < ll.length; i++) { cum.push(cum[i - 1] + map.distance(ll[i - 1], ll[i])); }
+            var total = cum[cum.length - 1] || 1;
+            var cur = svg.querySelector('.pi-cur'), dot = svg.querySelector('.pi-dot'), rd = svg.querySelector('.pi-read');
+            var zs = pr.map(function (q) { return Math.max(0, q[1]); });
+            var zmin = Math.floor(Math.min.apply(null, zs) / 10) * 10, zmax = Math.ceil(Math.max.apply(null, zs) / 10) * 10;
+            if (zmax - zmin < 20) { zmax = zmin + 20; }
+            var T = 10, B = 20, H = vb.height;
+            function move(ev) {
+                var pt = ev.touches ? ev.touches[0] : ev, r = svg.getBoundingClientRect();
+                var x = (pt.clientX - r.left) / r.width * vb.width;
+                var f = Math.min(1, Math.max(0, (x - X0) / W));
+                var d = f * dmax, k = 0;
+                for (i = 0; i < pr.length; i++) { if (pr[i][0] <= d) { k = i; } }
+                var k2 = Math.min(k + 1, pr.length - 1), t = pr[k2][0] > pr[k][0] ? (d - pr[k][0]) / (pr[k2][0] - pr[k][0]) : 0;
+                var z = Math.max(0, pr[k][1] + (pr[k2][1] - pr[k][1]) * t);
+                var cx = X0 + W * f, cy = T + (H - T - B) * (1 - (z - zmin) / (zmax - zmin));
+                cur.setAttribute('x1', cx); cur.setAttribute('x2', cx); dot.setAttribute('cx', cx); dot.setAttribute('cy', cy);
+                cur.style.display = dot.style.display = '';
+                rd.textContent = piFmtKm(d) + ' · ' + Math.round(z) + ' m';
+                var target = f * total, j = 1; while (j < cum.length - 1 && cum[j] < target) { j++; }
+                var seg = cum[j] - cum[j - 1] || 1, u = Math.min(1, Math.max(0, (target - cum[j - 1]) / seg));
+                var pos = piMid(ll[j - 1], ll[j], u);
+                if (!piProfMarker) { piProfMarker = L.circleMarker(pos, { radius: 7, color: '#fff', weight: 2, fillColor: '#e8590c', fillOpacity: 1, interactive: false, pane: 'popupPane' }).addTo(map); }
+                else { piProfMarker.setLatLng(pos); }
+                if (ev.cancelable && ev.touches) { ev.preventDefault(); }
+            }
+            function piMid(a, b, u) { return [a.lat + (b.lat - a.lat) * u, a.lng + (b.lng - a.lng) * u]; }
+            svg.addEventListener('mousemove', move);
+            svg.addEventListener('touchstart', move, { passive: false });
+            svg.addEventListener('touchmove', move, { passive: false });
+        }
+        function piProfClear() { map.getContainer().classList.remove('pi-popup-open'); if (piProfMarker) { map.removeLayer(piProfMarker); piProfMarker = null; } }
+
+        function pop_Sentiersnomms_3(feature, layer) {
+            /* survol désactivé (fluidité) */
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['nom'] !== null ? autolinker.link(String(feature.properties['nom']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['description'] ? String(feature.properties['description']) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['sources'] !== null ? autolinker.link(String(feature.properties['sources']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                <tr>\
+                        <td colspan="2"><b>Longueur :</b> ' + piLongueur(layer, feature) + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + piAltitude(feature) + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+				piProfBind(layer, e.popup);
+			});
+			layer.on('popupclose', piProfClear);
+			layer.bindPopup(content, { maxHeight: 400, minWidth: 270 });
+        }
+
+        function style_Sentiersnomms_3_0(feature) {
+            switch(String(feature.properties['nom'])) {
+                case 'Accès Mont Combani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,31,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Ascension du Mont Choungui':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,81,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Boucle Halifa Baco':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(132,204,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Cascade d\'Hajangoua':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,31,182,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Ancien GR 1 – Tour de Mayotte':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,204,175,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Marches d\'Acoua':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,124,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Piste maison du gouverneur':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(74,31,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Piste Majimbini':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(38,204,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Piste retenue collinaire':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,31,89,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Cratère Dziani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,139,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Dadi Tif':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(190,204,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la Cascade':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(168,31,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la Mairie':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,204,117,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la Maison de la Convalescence':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,66,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la Plage de Ngouja':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,45,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la Plage du Préfet':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(96,204,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier des Baobabs':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,31,147,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier des Crêtes de Bandrele':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,197,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier des tortues':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,160,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Grotte de Mtsoumbatsou':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(110,31,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Kadjifoutchéni':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,204,59,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Lac Dziani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,31,53,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier M\'Tsagnougni':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,103,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Mangrove de Dapani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(154,204,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Moya':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(203,31,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Mtsoumbatsou':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,204,153,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Padza de Bouéni':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,102,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier plage de Soulou':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(52,31,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier plage Kolo Batsoumou':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(60,204,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier pointe Bandrélé':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,31,111,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Saziley':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,161,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier sous-marin du lagon (Yatru)':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,196,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Tortue Bleue':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(145,31,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Tortue Jaune':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,204,95,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Tortue Rouge':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,44,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Tortue Verte':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,68,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Vanille de Chiconi':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(118,204,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier vers Mtsanga Fanou':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,31,169,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Ylang de Dzoumogné':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(31,204,189,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Ylang Ylang de Mtsamboro':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(204,138,31,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier du lac de Karihani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(255,127,0,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier long de Ouangani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(0,150,136,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier rouge de Kahani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(215,25,28,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier du Mont Choungui de Chirongui':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(63,81,181,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier long du mont Bénara':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(0,172,193,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la pointe de Mahabou':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(156,39,176,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la retenue collinaire de Combani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(96,125,139,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier des 5èmes':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(130,119,23,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier Sohoa-Combani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(0,77,64,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la retenue collinaire 2':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(0,200,83,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier du lac de Karihani 2':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(41,98,255,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier de la petite Boueni':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(233,30,99,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier des padzas de Combani':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(141,110,99,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Sentier du débarcadère':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(3,155,229,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+                case 'Tour du Dziani Daha':
+                    return {
+                pane: 'pane_Sentiersnomms_3',
+                opacity: 1,
+                color: 'rgba(88,31,204,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'bevel',
+                weight: 4.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Sentiersnomms_3');
+        map.getPane('pane_Sentiersnomms_3').style.zIndex = 403;
+        map.getPane('pane_Sentiersnomms_3').style['mix-blend-mode'] = 'normal';
+        var layer_Sentiersnomms_3 = new L.geoJson(json_Sentiersnomms_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Sentiersnomms_3',
+            layerName: 'layer_Sentiersnomms_3',
+            pane: 'pane_Sentiersnomms_3',
+            onEachFeature: pop_Sentiersnomms_3,
+            style: style_Sentiersnomms_3_0,
+        });
+        bounds_group.addLayer(layer_Sentiersnomms_3);
+        map.addLayer(layer_Sentiersnomms_3);
+        const url = {"Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+        "France BAN": "https://api-adresse.data.gouv.fr/search/?"}
+        var photonControl = L.control.photon({
+            url: url["Nominatim OSM"],
+            feedbackLabel: '',
+            position: 'topleft',
+            includePosition: true,
+            initial: true,
+            // resultsHandler: myHandler,
+        }).addTo(map);
+        photonControl._container.childNodes[0].style.borderRadius="10px"
+        // Create a variable to store the geoJSON data
+        var x = null;
+        // Create a variable to store the marker
+        var marker = null;
+        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
+        var z = null;
+        photonControl.on('selected', function(e) {
+            console.log(photonControl.search.resultsContainer);
+            if (x != null) {
+                map.removeLayer(obj3.marker);
+                map.removeLayer(x);
+            }
+            obj2.gcd = e.choice;
+            x = L.geoJSON(obj2.gcd).addTo(map);
+            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
+            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
+            map.setView(x.getLayers()[0].getLatLng(), 17);
+            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
+            console.log(e);
+            e.target.input.value = z;
+        });
+        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
+        search.classList.add("leaflet-control-search")
+        search.style.display = "flex";
+        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+
+        // Create the new button element
+        var button = document.createElement("div");
+        button.id = "gcd-button-control";
+        button.className = "gcd-gl-btn fa fa-search search-button";
+
+        // Insert the button at the beginning of the search control
+        search.insertBefore(button, search.firstChild);
+        last = search.lastChild;
+        last.style.display = "none";
+        button.addEventListener("click", function (e) {
+            if (last.style.display === "none") {
+                last.style.display = "block";
+            } else {
+                last.style.display = "none";
+            }
+        });
+
+        function piEsc(v) { return v === null || v === undefined ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        function piBindHover(layer) {
+            /* survol désactivé (fluidité) */
+        }
+        function pop_ONFForetsPubliques_4(feature, layer) {
+            piBindHover(layer);
+            var p = feature.properties;
+            layer.bindPopup('<b>' + piEsc(p['llib_frt']) + '</b><br />' +
+                (p['cdom_frt'] === 'OUI' ? 'Forêt domaniale (État)' : 'Forêt départementale (relevant du régime forestier)') +
+                '<br /><small>Gestion : Office national des forêts (ONF)</small>', { maxHeight: 400 });
+        }
+        function style_ONFForetsPubliques_4_0() {
+            return { pane: 'pane_ONFForetsPubliques_4', opacity: 1, color: 'rgba(46,125,50,1.0)', dashArray: '', lineCap: 'butt', lineJoin: 'miter',
+                     weight: 1.5, fill: true, fillOpacity: 0.3, fillColor: 'rgba(46,125,50,1.0)', interactive: true };
+        }
+        map.createPane('pane_ONFForetsPubliques_4');
+        map.getPane('pane_ONFForetsPubliques_4').style.zIndex = 402;
+        var layer_ONFForetsPubliques_4 = new L.geoJson(json_ONFForetsPubliques_4, {
+            attribution: '&copy; ONF / IGN', interactive: true, dataVar: 'json_ONFForetsPubliques_4', layerName: 'layer_ONFForetsPubliques_4',
+            pane: 'pane_ONFForetsPubliques_4', onEachFeature: pop_ONFForetsPubliques_4, style: style_ONFForetsPubliques_4_0,
+        });
+        map.addLayer(layer_ONFForetsPubliques_4);
+
+        function pop_RNNReservesNaturelles_5(feature, layer) {
+            piBindHover(layer);
+            var p = feature.properties;
+            var html = '<b>' + piEsc(p['nom_site']) + '</b><br />Réserve naturelle nationale';
+            if (p['surf_off']) html += '<br />Surface : ' + piEsc(p['surf_off']) + ' ha';
+            if (p['gest_site']) html += '<br />Gestionnaire : ' + piEsc(p['gest_site']);
+            if (p['url_fiche']) html += '<br /><a href="' + piEsc(p['url_fiche']) + '" target="_blank" rel="noopener">Fiche INPN</a>';
+            layer.bindPopup(html, { maxHeight: 400 });
+        }
+        function style_RNNReservesNaturelles_5_0() {
+            return { pane: 'pane_RNNReservesNaturelles_5', opacity: 1, color: 'rgba(123,31,162,1.0)', dashArray: '', lineCap: 'butt', lineJoin: 'miter',
+                     weight: 2.0, fill: true, fillOpacity: 0.25, fillColor: 'rgba(123,31,162,1.0)', interactive: true };
+        }
+        map.createPane('pane_RNNReservesNaturelles_5');
+        map.getPane('pane_RNNReservesNaturelles_5').style.zIndex = 402;
+        var layer_RNNReservesNaturelles_5 = new L.geoJson(json_RNNReservesNaturelles_5, {
+            attribution: '&copy; MNHN / INPN', interactive: true, dataVar: 'json_RNNReservesNaturelles_5', layerName: 'layer_RNNReservesNaturelles_5',
+            pane: 'pane_RNNReservesNaturelles_5', onEachFeature: pop_RNNReservesNaturelles_5, style: style_RNNReservesNaturelles_5_0,
+        });
+        map.addLayer(layer_RNNReservesNaturelles_5);
+        var overlaysTree = [
+            {label: 'Sentiers nommés<br /><table><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_AccèsMontCombani0.png" /></td><td>Accès Mont Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_AscensionduMontChoungui1.png" /></td><td>Ascension du Mont Choungui</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_BoucleHalifaBaco2.png" /></td><td>Boucle Halifa Baco</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_CascadedHajangoua3.png" /></td><td>Cascade d\'Hajangoua</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_GR1TourdeMayotte4.png" /></td><td>Ancien GR 1 – Tour de Mayotte</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_MarchesdAcoua5.png" /></td><td>Marches d\'Acoua</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Pistemaisondugouverneur6.png" /></td><td>Piste maison du gouverneur</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_PisteMajimbini7.png" /></td><td>Piste Majimbini</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Pisteretenuecollinaire8.png" /></td><td>Piste retenue collinaire</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierCratèreDziani9.png" /></td><td>Sentier Cratère Dziani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierDadiTif10.png" /></td><td>Sentier Dadi Tif</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaCascade11.png" /></td><td>Sentier de la Cascade</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaMairie12.png" /></td><td>Sentier de la Mairie</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaMaisondelaConvalescence13.png" /></td><td>Sentier de la Maison de la Convalescence</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaPlagedeNgouja14.png" /></td><td>Sentier de la Plage de Ngouja</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaPlageduPréfet15.png" /></td><td>Sentier de la Plage du Préfet</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelapointedeMahabou47.png" /></td><td>Sentier de la pointe de Mahabou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelaretenuecollinairedeCombani48.png" /></td><td>Sentier de la retenue collinaire de Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierSohoa-Combani50.png" /></td><td>Sentier Sohoa-Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Sentierdelaretenuecollinaire251.png" /></td><td>Sentier de la retenue collinaire 2</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdulacdeKarihani252.png" /></td><td>Sentier du lac de Karihani 2</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdelapetiteBoueni53.png" /></td><td>Sentier de la petite Boueni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdespadzasdeCombani54.png" /></td><td>Sentier des padzas de Combani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Sentierdudébarcadère55.png" /></td><td>Sentier du débarcadère</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierducollègedeTsingoni49.png" /></td><td>Sentier des 5èmes</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdesBaobabs16.png" /></td><td>Sentier des Baobabs</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdesCrêtesdeBandrele17.png" /></td><td>Sentier des Crêtes de Bandrele</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_Sentierdestortues18.png" /></td><td>Sentier des tortues</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierdulacdeKarihani41.png" /></td><td>Sentier du lac de Karihani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierduMontChounguideChirongui45.png" /></td><td>Sentier du Mont Choungui de Chirongui</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierGrottedeMtsoumbatsou19.png" /></td><td>Sentier Grotte de Mtsoumbatsou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierKadjifoutchéni20.png" /></td><td>Sentier Kadjifoutchéni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierLacDziani21.png" /></td><td>Sentier Lac Dziani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierlongdeOuangani42.png" /></td><td>Sentier long de Ouangani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierlongdumontBénara46.png" /></td><td>Sentier long du mont Bénara</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMTsagnougni22.png" /></td><td>Sentier M\'Tsagnougni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMangrovedeDapani23.png" /></td><td>Sentier Mangrove de Dapani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMoya24.png" /></td><td>Sentier Moya</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierMtsoumbatsou25.png" /></td><td>Sentier Mtsoumbatsou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierPadzadeBouéni26.png" /></td><td>Sentier Padza de Bouéni</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierplagedeSoulou27.png" /></td><td>Sentier plage de Soulou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierplageKoloBatsoumou28.png" /></td><td>Sentier plage Kolo Batsoumou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierpointeBandrélé29.png" /></td><td>Sentier pointe Bandrélé</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierrougedeKahani43.png" /></td><td>Sentier rouge de Kahani</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierSaziley30.png" /></td><td>Sentier Saziley</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentiersousmarindulagonYatru31.png" /></td><td>Sentier sous-marin du lagon (Yatru)</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueBleue32.png" /></td><td>Sentier Tortue Bleue</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueJaune33.png" /></td><td>Sentier Tortue Jaune</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueRouge34.png" /></td><td>Sentier Tortue Rouge</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierTortueVerte35.png" /></td><td>Sentier Tortue Verte</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierVanilledeChiconi36.png" /></td><td>Sentier Vanille de Chiconi</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierversMtsangaFanou37.png" /></td><td>Sentier vers Mtsanga Fanou</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierYlangdeDzoumogné38.png" /></td><td>Sentier Ylang de Dzoumogné</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_SentierYlangYlangdeMtsamboro39.png" /></td><td>Sentier Ylang Ylang de Mtsamboro</td></tr><tr><td style="text-align: center;"><img src="legend/Sentiersnomms_3_TourduDzianiDaha40.png" /></td><td>Tour du Dziani Daha</td></tr></table>', layer: layer_Sentiersnomms_3},
+            {label: '<img src="legend/ConservatoiredulittoralParcellesprotgesMayotte_2.png" /> Conservatoire du littoral - Parcelles protégées (Mayotte)', layer: layer_ConservatoiredulittoralParcellesprotgesMayotte_2},
+            {label: '<img src="legend/ONFForetsPubliques_4.png" /> ONF - Forêts publiques (domaniales et départementales)', layer: layer_ONFForetsPubliques_4},
+            {label: '<img src="legend/RNNReservesNaturelles_5.png" /> Réserves naturelles nationales (RNN)', layer: layer_RNNReservesNaturelles_5},
+            {label: "Plan IGN", layer: layer_PlanIGN_1, radioGroup: 'bm' },
+            {label: "Photographies aériennes IGN", layer: layer_OrthoIGN_6, radioGroup: 'bm' },
+            {label: "OpenStreetMap (en ligne uniquement)", layer: layer_OpenStreetMap_0, radioGroup: 'bm' },]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+		document.addEventListener("DOMContentLoaded", function() {
+            // set new Layers List height which considers toggle icon
+            function newLayersListHeight() {
+                var layerScrollbarElement = document.querySelector('.leaflet-control-layers-scrollbar');
+                if (layerScrollbarElement) {
+                    var layersListElement = document.querySelector('.leaflet-control-layers-list');
+                    var originalHeight = layersListElement.style.height 
+                        || window.getComputedStyle(layersListElement).height;
+                    var newHeight = parseFloat(originalHeight) - 50;
+                    layersListElement.style.height = newHeight + 'px';
+                }
+            }
+            var isLayersListExpanded = true;
+            var controlLayersElement = document.querySelector('.leaflet-control-layers');
+            var toggleLayerControl = document.querySelector('.leaflet-control-layers-toggle');
+            // toggle Collapsed/Expanded and apply new Layers List height
+            toggleLayerControl.addEventListener('click', function() {
+                if (isLayersListExpanded) {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                } else {
+                    controlLayersElement.classList.add('leaflet-control-layers-expanded');
+                }
+                isLayersListExpanded = !isLayersListExpanded;
+                newLayersListHeight()
+            });	
+			// apply new Layers List height if toggle layerstree
+			if (controlLayersElement) {
+				controlLayersElement.addEventListener('click', function(event) {
+					var toggleLayerHeaderPointer = event.target.closest('.leaflet-layerstree-header-pointer span');
+					if (toggleLayerHeaderPointer) {
+						newLayersListHeight();
+					}
+				});
+			}
+            // Collapsed/Expanded at Start to apply new height
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            // Collapsed touch/small screen
+            var isSmallScreen = window.innerWidth < 650;
+            if (isSmallScreen) {
+                setTimeout(function() {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                    isLayersListExpanded = !isLayersListExpanded;
+                }, 500);
+            }  
+        });       
+        setBounds();
+        var i = 0;
+        layer_Sentiersnomms_3.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['nom'] !== null?String('<div style="color: #111111; font-size: 12pt; font-weight: bold; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['nom']).replace(/\\n/g, '<br>') + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Sentiersnomms_3'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        resetLabels([layer_Sentiersnomms_3]);
+        var piLabelTimer = null;
+        function piResetLabelsSoon() {
+            clearTimeout(piLabelTimer);
+            piLabelTimer = setTimeout(function () { resetLabels([layer_Sentiersnomms_3]); }, 200);
+        }
+        map.on("zoomend", piResetLabelsSoon);
+        map.on("layeradd layerremove", function (e) { if (e.layer === layer_Sentiersnomms_3) { piResetLabelsSoon(); } });
+        </script>        
+            <script>window.PI_CONFIG = {contactEmail: "m.videau@conservatoire-du-littoral.fr"};</script>
+        <script>
+        var piSel = null;
+        function piUnselect() {
+            if (piSel && piSel.layer && piSel.layer.setStyle) { piSel.layer.setStyle(piSel.style); }
+            piSel = null;
+        }
+        map.on('popupopen', function (e) {
+            var l = e.popup && e.popup._source;
+            piUnselect();
+            if (!l || !l.setStyle || !l.options || !l.options.pane) { return; }
+            var o = l.options, isLine = !(l instanceof L.Polygon);
+            piSel = { layer: l, style: { color: o.color, weight: o.weight, opacity: o.opacity, fillColor: o.fillColor, fillOpacity: o.fillOpacity } };
+            l.setStyle(isLine ? { color: '#FFE600', weight: (o.weight || 4) + 3, opacity: 1 }
+                              : { color: '#FFD400', weight: (o.weight || 1.5) + 1.5, opacity: 1, fillColor: '#FFE600', fillOpacity: 0.55 });
+            if (l.bringToFront) { l.bringToFront(); }
+        });
+        map.on('popupclose', piUnselect);
+</script>
+<script>
+        /* --- date de mise à jour (dans les crédits, en bas à droite) --- */
+        map.attributionControl.addAttribution('Carte mise à jour le 5 octobre 2026');
+        /* --- message d'alerte fermable --- */
+        (function () {
+            var box = document.getElementById('pi-alert'), closed = false;
+            try { closed = sessionStorage.getItem('pi-alert-closed') === '1'; } catch (e) {}
+            if (!closed) { box.style.display = 'block'; }
+            document.getElementById('pi-alert-close').addEventListener('click', function () {
+                box.style.display = 'none';
+                try { sessionStorage.setItem('pi-alert-closed', '1'); } catch (e) {}
+            });
+            L.DomEvent.disableClickPropagation(box);
+        })();
+        /* --- clic sur un sentier de la légende : zoom + sélection --- */
+        (function () {
+            function trouver(nom) {
+                var res = null;
+                layer_Sentiersnomms_3.eachLayer(function (l) {
+                    if (!res && l.feature && l.feature.properties.nom === nom) { res = l; }
+                });
+                return res;
+            }
+            function pointProche(l) {
+                var c = l.getBounds().getCenter(), best = null, bd = Infinity;
+                (function walk(a) {
+                    if (!a.length) { return; }
+                    if (a[0] instanceof L.LatLng) {
+                        a.forEach(function (p) { var d = p.distanceTo(c); if (d < bd) { bd = d; best = p; } });
+                    } else { a.forEach(walk); }
+                })(l.getLatLngs());
+                return best || c;
+            }
+            document.querySelectorAll('.leaflet-control-layers table tr').forEach(function (tr) {
+                tr.title = 'Cliquer pour zoomer sur ce sentier';
+            });
+            document.addEventListener('click', function (e) {
+                var tr = e.target.closest && e.target.closest('.leaflet-control-layers table tr');
+                if (!tr) { return; }
+                var cell = tr.querySelector('td:last-child');
+                var l = cell && trouver(cell.textContent.trim());
+                if (!l) { return; }
+                e.preventDefault(); e.stopPropagation();
+                if (!map.hasLayer(layer_Sentiersnomms_3)) { map.addLayer(layer_Sentiersnomms_3); }
+                map.closePopup();
+                map.fitBounds(l.getBounds(), { padding: [70, 70], maxZoom: 16, animate: false });
+                l.openPopup(pointProche(l));
+                /* petit écran : on replie la légende pour laisser voir le sentier */
+                var ctl = document.querySelector('.leaflet-control-layers'), tg = document.querySelector('.leaflet-control-layers-toggle');
+                if (window.innerWidth < 650 && ctl && tg && ctl.classList.contains('leaflet-control-layers-expanded')) { tg.click(); }
+            }, true);
+        })();
+</script>
+<script>
+        /* --- recherche d'un sentier par nom (filtre la légende ; Entrée = zoom sur le premier résultat) --- */
+        (function () {
+            var liste = document.querySelector('.leaflet-control-layers-list');
+            if (!liste) { return; }
+            var wrap = document.createElement('div');
+            wrap.className = 'pi-search';
+            wrap.innerHTML = '<input type="search" id="pi-q" placeholder="Rechercher un sentier\u2026" aria-label="Rechercher un sentier" autocomplete="off">' +
+                '<div class="pi-search-none" id="pi-q-none" style="display:none">Aucun sentier ne correspond.</div>';
+            liste.insertBefore(wrap, liste.firstChild);
+            L.DomEvent.disableClickPropagation(wrap);
+            var input = wrap.querySelector('input'), none = wrap.querySelector('#pi-q-none');
+            ['keydown', 'keypress', 'keyup'].forEach(function (t) { L.DomEvent.on(input, t, L.DomEvent.stopPropagation); });
+            function norm(s) { return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[\u2019']/g, ' ').replace(/\s+/g, ' ').trim(); }
+            function lignes() { return Array.prototype.slice.call(document.querySelectorAll('.leaflet-control-layers table tr')); }
+            function filtrer() {
+                var q = norm(input.value), vus = 0;
+                lignes().forEach(function (tr) {
+                    var c = tr.querySelector('td:last-child'), ok = !q || norm(c.textContent).indexOf(q) !== -1;
+                    tr.style.display = ok ? '' : 'none';
+                    if (ok) { vus++; }
+                });
+                none.style.display = vus ? 'none' : 'block';
+            }
+            input.addEventListener('input', filtrer);
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    var premier = lignes().filter(function (tr) { return tr.style.display !== 'none'; })[0];
+                    if (premier) { premier.querySelector('td:last-child').click(); input.blur(); }
+                } else if (e.key === 'Escape') { input.value = ''; filtrer(); }
+            });
+        })();
+</script>
+<script src="js/proposer_itineraire.js?v=20261005k"></script>
+    </body>
+</html>
