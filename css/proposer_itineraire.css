@@ -79,3 +79,11 @@ body{display:flex;flex-direction:column;font-family:var(--cdl-police)}
 #cdl-header .cdl-gt img.cdl-gt-full{display:block;height:52px;width:auto}
 #cdl-header .cdl-gt img.cdl-gt-mini{display:none;height:36px;width:auto}
 @media (max-width:900px){#cdl-header .cdl-gt img.cdl-gt-full{display:none}#cdl-header .cdl-gt img.cdl-gt-mini{display:block}}
+
+/* sans logo CDL : titre calé à gauche */
+#cdl-header .cdl-titres{border-left:0;padding-left:0}
+/* boutons plus compacts sur téléphone */
+@media (max-width:600px){
+  .pi-btn-ctl a{font-size:11px !important;line-height:1.2 !important;padding:6px 8px !important;border-radius:3px !important;box-shadow:0 1px 3px rgba(0,0,0,.4) !important}
+  .pi-btn-sg{margin-top:4px !important}
+}
